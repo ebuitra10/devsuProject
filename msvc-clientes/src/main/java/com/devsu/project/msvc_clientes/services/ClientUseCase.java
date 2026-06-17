@@ -1,6 +1,7 @@
 package com.devsu.project.msvc_clientes.services;
 
 import com.devsu.project.msvc_clientes.domain.ClientEntity;
+import com.devsu.project.msvc_clientes.messaging.ClientEventPublisher;
 import com.devsu.project.msvc_clientes.repositories.IClientRepository;
 import com.devsu.project.msvc_clientes.services.usecase.IClientUseCase;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +15,7 @@ import java.util.Optional;
 public class ClientUseCase implements IClientUseCase {
 
     private final IClientRepository clientRepository;
+    private final ClientEventPublisher clientEventPublisher;
 
     @Override
     public List<ClientEntity> findAll() {
@@ -32,19 +34,19 @@ public class ClientUseCase implements IClientUseCase {
 
     @Override
     public ClientEntity save(ClientEntity client) {
-
         if (clientRepository.existsByClientId(client.getClientId())) {
             throw new IllegalArgumentException("Client ID already exists: " + client.getClientId());
         }
         if (clientRepository.existsByIdentification(client.getIdentification())) {
             throw new IllegalArgumentException("Identification already exists: " + client.getIdentification());
         }
-        return clientRepository.save(client);
+        ClientEntity saved = clientRepository.save(client);
+        clientEventPublisher.publishClientCreated(saved);
+        return saved;
     }
 
     @Override
     public ClientEntity update(Long id, ClientEntity client) {
-
         ClientEntity existing = clientRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Client not found with id: " + id));
 
@@ -58,12 +60,13 @@ public class ClientUseCase implements IClientUseCase {
         existing.setPassword(client.getPassword());
         existing.setStatus(client.getStatus());
 
-        return clientRepository.save(existing);
+        ClientEntity updated = clientRepository.save(existing);
+        clientEventPublisher.publishClientUpdated(updated);
+        return updated;
     }
 
     @Override
     public ClientEntity partialUpdate(Long id, ClientEntity client) {
-
         ClientEntity existing = clientRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Client not found with id: " + id));
 
@@ -77,7 +80,9 @@ public class ClientUseCase implements IClientUseCase {
         if (client.getPassword() != null) existing.setPassword(client.getPassword());
         if (client.getStatus() != null) existing.setStatus(client.getStatus());
 
-        return clientRepository.save(existing);
+        ClientEntity updated = clientRepository.save(existing);
+        clientEventPublisher.publishClientUpdated(updated);
+        return updated;
     }
 
     @Override
@@ -85,5 +90,6 @@ public class ClientUseCase implements IClientUseCase {
         clientRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Client not found with id: " + id));
         clientRepository.deleteById(id);
+        clientEventPublisher.publishClientDeleted(id);
     }
 }
