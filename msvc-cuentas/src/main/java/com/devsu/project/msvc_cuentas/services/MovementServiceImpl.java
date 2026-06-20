@@ -37,35 +37,56 @@ public class MovementServiceImpl implements IMovementUseCase {
     }
 
     @Override
-    public MovementEntity save(Long accountId, MovementEntity movement) {
-        // F2: Buscar la cuenta
+    public MovementEntity saveDeposit(Long accountId, MovementEntity movement) {
+
         AccountEntity account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new RuntimeException("Account not found with id: " + accountId));
 
-        // F2: Calcular saldo disponible
+
         double currentBalance = account.getInitialBalance();
         double movementValue = movement.getValue();
         double newBalance = currentBalance + movementValue;
 
-        // F3: Validar saldo disponible
+
+
+        account.setInitialBalance(newBalance);
+        accountRepository.save(account);
+
+
+        movement.setAccount(account);
+        movement.setBalance(newBalance);
+        movement.setMovementType("Deposito");
+
+        return movementRepository.save(movement);
+    }
+
+    @Override
+    public MovementEntity saveWithdrawal(Long accountId, MovementEntity movement) {
+
+
+        AccountEntity account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new RuntimeException("Account not found with id: " + accountId));
+
+
+        double currentBalance = account.getInitialBalance();
+        double movementValue = movement.getValue();
+        double newBalance = currentBalance - movementValue;
+
+
         if (newBalance < 0) {
             throw new IllegalArgumentException("Saldo no disponible");
         }
 
-        // F2: Actualizar saldo de la cuenta
+
         account.setInitialBalance(newBalance);
         accountRepository.save(account);
 
-        // F2: Registrar el movimiento
+
         movement.setAccount(account);
         movement.setBalance(newBalance);
 
-        // F2: Determinar tipo de movimiento automaticamente
-        if (movementValue > 0) {
-            movement.setMovementType("Deposito");
-        } else {
-            movement.setMovementType("Retiro");
-        }
+        movement.setMovementType("Retiro");
+
 
         return movementRepository.save(movement);
     }
@@ -91,7 +112,8 @@ public class MovementServiceImpl implements IMovementUseCase {
 
     @Override
     public List<AccountStatementDto> getAccountStatement(Long clientId, LocalDateTime startDate, LocalDateTime endDate) {
-        // F4: Obtener movimientos por cliente y rango de fechas
+
+
         List<MovementEntity> movements = movementRepository
                 .findByClientIdAndDateBetween(clientId, startDate, endDate);
 
@@ -99,7 +121,7 @@ public class MovementServiceImpl implements IMovementUseCase {
             throw new RuntimeException("No movements found for client id: " + clientId);
         }
 
-        // F4: Mapear a DTO con el formato que pide la prueba
+
         return movements.stream()
                 .map(m -> AccountStatementDto.builder()
                         .date(m.getDate())

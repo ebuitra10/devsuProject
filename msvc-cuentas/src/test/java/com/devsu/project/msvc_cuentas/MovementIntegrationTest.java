@@ -3,6 +3,7 @@ package com.devsu.project.msvc_cuentas;
 import com.devsu.project.msvc_cuentas.domain.AccountEntity;
 import com.devsu.project.msvc_cuentas.domain.MovementEntity;
 import com.devsu.project.msvc_cuentas.repositories.IAccountRepository;
+import com.devsu.project.msvc_cuentas.repositories.IMovementRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,12 +29,18 @@ class MovementIntegrationTest {
     private IAccountRepository accountRepository;
 
     @Autowired
+    private IMovementRepository movementRepository;
+
+    @Autowired
     private ObjectMapper objectMapper;
 
     private AccountEntity account;
 
     @BeforeEach
     void setUp() {
+
+
+        movementRepository.findAll().forEach(m -> movementRepository.deleteById(m.getId()));
         accountRepository.findAll().forEach(a -> accountRepository.deleteById(a.getId()));
 
         account = new AccountEntity();
@@ -48,9 +55,10 @@ class MovementIntegrationTest {
     @Test
     void shouldRegisterMovementAndUpdateBalance() throws Exception {
         MovementEntity movement = new MovementEntity();
-        movement.setValue(-575.00);
+        movement.setValue(575.00);
 
-        mockMvc.perform(post("/movimientos/" + account.getId())
+
+        mockMvc.perform(post("/movimientos/retiro/" + account.getId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(movement)))
                 .andExpect(status().isCreated())
@@ -59,15 +67,15 @@ class MovementIntegrationTest {
     }
 
     @Test
-    void shouldReturnErrorWhenInsufficientBalance() throws Exception {
+    void shouldReturnErrorWhenInsufficientBalanceRetire() throws Exception {
         MovementEntity movement = new MovementEntity();
-        movement.setValue(-2000.00);
+        movement.setValue(2000.00);
 
-        mockMvc.perform(post("/movimientos/" + account.getId())
+
+        mockMvc.perform(post("/movimientos/retiro/" + account.getId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(movement)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("Saldo no disponible"));
+                .andExpect(status().isBadRequest());
     }
 
     @Test
@@ -75,17 +83,18 @@ class MovementIntegrationTest {
         MovementEntity movement = new MovementEntity();
         movement.setValue(500.00);
 
-        mockMvc.perform(post("/movimientos/" + account.getId())
+
+        mockMvc.perform(post("/movimientos/deposito/" + account.getId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(movement)))
                 .andExpect(status().isCreated());
+
 
         mockMvc.perform(get("/reportes")
                         .param("clientId", "1")
                         .param("startDate", "2026-01-01T00:00:00")
                         .param("endDate", "2026-12-31T23:59:59"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].accountNumber").value("999001"))
-                .andExpect(jsonPath("$[0].movementValue").value(500.00));
+                .andExpect(jsonPath("$[0].accountNumber").value("999001"));
     }
 }

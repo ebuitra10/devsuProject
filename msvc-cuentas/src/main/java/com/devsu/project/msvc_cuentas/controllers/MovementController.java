@@ -36,10 +36,16 @@ public class MovementController {
         return ResponseEntity.ok(movementUseCase.findByAccountId(accountId));
     }
 
-    @PostMapping("/movimientos/{accountId}")
-    public ResponseEntity<MovementEntity> save(@PathVariable Long accountId,
+    @PostMapping("/movimientos/deposito/{accountId}")
+    public ResponseEntity<MovementEntity> saveDeposit(@PathVariable Long accountId,
                                                @Valid @RequestBody MovementEntity movement) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(movementUseCase.save(accountId, movement));
+        return ResponseEntity.status(HttpStatus.CREATED).body(movementUseCase.saveDeposit(accountId, movement));
+    }
+
+    @PostMapping("/movimientos/retiro/{accountId}")
+    public ResponseEntity<MovementEntity> saveWithdrawal(@PathVariable Long accountId,
+                                               @Valid @RequestBody MovementEntity movement) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(movementUseCase.saveWithdrawal(accountId, movement));
     }
 
     @PutMapping("/movimientos/{id}")
@@ -56,7 +62,7 @@ public class MovementController {
 
     }
 
-    // F4: Reporte de estado de cuenta por cliente y rango de fechas
+
     @GetMapping("/reportes")
     public ResponseEntity<List<AccountStatementDto>> getAccountStatement(
             @RequestParam Long clientId,

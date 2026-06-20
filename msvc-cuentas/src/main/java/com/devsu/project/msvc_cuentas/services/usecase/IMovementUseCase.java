@@ -15,7 +15,9 @@ public interface IMovementUseCase {
 
     List<MovementEntity> findByAccountId(Long accountId);
 
-    MovementEntity save(Long accountId, MovementEntity movement);
+    MovementEntity saveDeposit(Long accountId, MovementEntity movement);
+
+    MovementEntity saveWithdrawal(Long accountId, MovementEntity movement);
 
     MovementEntity update(Long id, MovementEntity movement);
 
